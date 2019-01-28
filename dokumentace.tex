@@ -1,0 +1,261 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[total={17cm,25cm}, top=2.5cm, left=2.5cm, right=2.5cm,  includefoot]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{gensymb}
+\usepackage{graphicx}
+\graphicspath{ {} }
+\usepackage[czech]{babel}
+\usepackage{enumitem}
+\usepackage{pdfpages}
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{color}
+
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mybackground}{rgb}{0.92,0.92,1}
+
+\lstset{ 
+  backgroundcolor=\color{mybackground},
+  commentstyle=\color{mygreen},
+  firstnumber=1,
+  basicstyle=\footnotesize,  
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\tiny\color{mygray},
+  keepspaces=true, 
+  breakatwhitespace=false, 
+  language=sql,
+}
+
+
+\pagestyle{empty} % vypne číslování stránek
+
+
+
+
+\usepackage[OT2,OT1]{fontenc}
+\newcommand\cyr
+{
+\renewcommand\rmdefault{wncyr}
+\renewcommand\sfdefault{wncyss}
+\renewcommand\encodingdefault{OT2}
+\normalfont
+\selectfont
+}
+\DeclareTextFontCommand{\textcyr}{\cyr}
+\def\cprime{\char"7E }
+\def\cdprime{\char"7F }
+\def\eoborotnoye{\char’013}
+\def\Eoborotnoye{\char’003}
+\setlength{\parindent}{1em} 
+%\setlength{\parskip}{0.5ex}
+
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\Huge
+\vspace*{4.5cm}
+Úvod do zpracování prostorových dat\\
+\vspace{0.2cm}
+
+\Large  
+Kvalita bydlení ve vybraných částech Prahy\\
+\vspace{0.2cm}
+
+\normalsize  
+Zimní semestr 2018/2019\\
+\vspace{14cm}
+\end{center}
+
+\begin{flushright}
+\Large
+Tereza Kulovaná \\
+Markéta Pecenová \\
+\end{flushright}
+
+\end{titlepage}
+
+
+\pagestyle{plain}     % zapne obyčejné číslování
+\setcounter{page}{1}  % nastaví čítač stránek znovu od jedné
+
+\tableofcontents
+\newpage
+
+\section{Zadání}
+\subsection{Zadání projektu}
+Navrhněte a vytvořte tématické vrstvy (např. vodní toky, vodní plochy, lesy, silnice, železnice apod.) na základě dat \textit{OpenStreetMap} a další otevřených zdrojů. Aplikujte testy datové integrity a odstraňte případné nekonzistence v datech. Vytvořte tutoriál - tj. sadu atributových a prostorových dotazů nad databází pgis\_uzpd.
+
+\subsection{Zvolené téma}
+
+
+\clearpage
+
+\section{Zpracování dat}
+\subsection{Data}
+
+
+\subsection{Příprava databáze}
+
+\begin{lstlisting}
+CREATE TABLE adresni_mista AS
+	SELECT kod, cislodomovni, cisloorientacni, geom
+	FROM ruian_praha.adresnimista
+\end{lstlisting}
+
+\begin{lstlisting}
+ALTER TABLE adresni_mista ADD PRIMARY KEY(kod)
+\end{lstlisting}
+
+\begin{lstlisting}
+CREATE index adresy_index ON adresni_mista(geom)
+\end{lstlisting}
+
+\begin{lstlisting}
+SELECT kod FROM adresni_mista WHERE not st_isvalid(geom)
+\end{lstlisting}
+
+\begin{lstlisting}
+DELETE FROM adresni_mista WHERE geom IS NULL
+\end{lstlisting}
+
+
+
+
+\clearpage
+\begin{comment}
+\section{Aplikace}
+V následují kapitole je představen vizuální vzhled vytvořené aplikace tak, jak ji vidí prostý uživatel.
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=14cm]{./pictures/app_default.png}
+	\caption{Výchozí vzhled aplikace po spuštění}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=14cm]{./pictures/app_load_points.png}
+	\caption{Aplikace po nahrání vstupních dat}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=15cm]{./pictures/app_delaunay.png}
+	\caption{Trojúhelníková síť}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=15cm]{./pictures/app_contours.png}
+	\caption{Vykreslení vrstevnic}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=15cm]{./pictures/app_slope.png}
+	\caption{Sklon trojúhelníků}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=15cm]{./pictures/app_aspect.png}
+	\caption{Orientace trojúhelníků}
+\end{figure}
+\clearpage
+
+
+\subsection{Plošina}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=7cm]{./pictures/kupec_plateau_contours.png}
+	\includegraphics[width=7cm]{./pictures/kupec_plateau_slope.png}
+	\caption{Plošina vytvořená aplikací}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=7cm]{./pictures/atlas_plateau.png}
+	\caption{Plošina ze SW \textit{Atlas}}
+\end{figure}
+
+Plošina uprostřed území je rozeznatelná zejména z tvarů vrstevnic. Z trojúhelníkové sítě je patrné, že je trochu vyvýšená, ale i tak to chce trochu představivosti.
+
+\subsection{Hrana}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=7cm]{./pictures/kupec_edge_contours.png}
+	\includegraphics[width=7cm]{./pictures/kupec_edge_slope.png}
+	\caption{Hrana silnice vytvořená aplikací}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=10cm]{./pictures/atlas_edge.png}
+	\caption{Hrana silnice ze SW \textit{Atlas}}
+\end{figure}
+
+Vygenerované vrstevnice v okolí silnice působí silně kostrbatým dojmem, avšak trojúhel\-ní\-ko\-vá síť poměrně věrně kopíruje tvar silnice. Jak již bylo zmíněno výše, velkým pro\-blé\-mem jsou štíhlé trojúhelníky v horní části modelu, které by neměly existovat.
+
+
+\subsection{Údolnice}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=7.5cm]{./pictures/kupec_thalweg_contours.png}
+	\includegraphics[width=7.5cm]{./pictures/kupec_thalweg_aspect.png}
+	\caption{Údolnice vytvořená aplikací}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=15cm]{./pictures/atlas_thalweg.png}
+	\caption{Údolnice ze SW \textit{Atlas}}
+\end{figure}
+
+Pro názornost porovnání byla tentokrát použita orientace trojúhelníků ke světovým stranám. Z jejich natočení je patrné, že ve středu dochází ke zlomu v terénu. Vrstevnice tento úkaz hezky vystihují. Ze všech částí DMT vystihla aplikace tento tvar v porovnání s DMT z \textit{Atlasu} nejvěrněji.
+\clearpage
+
+\end{comment}
+
+\section{Ukázka SQL dotazů}
+
+\clearpage
+
+\section{Závěr}
+
+
+\clearpage
+
+\section{Přílohy} 
+
+\begin{itemize}
+\item Příloha č. 1: Prezentace (prezentace.pdf)
+\item Příloha č. 2: SQL dávka (davka.sql)
+\end{itemize}
+
+\clearpage
+
+\section{Zdroje}
+\begin{enumerate}
+\item  \textsl{Otevřená data} [online] [cit. 28. 1. 2019].\\
+Dostupné z: \href{http://www.geoportalpraha.cz/cs/opendata?fbclid=IwAR3dvAz20d2Anu-nuD9A7wC3byHUKTzDGTnlgQrmi0tC-t-SbSqN7Q5x-sA#.XE8ymWlCfIX}{http://www.geoportalpraha.cz/}
+
+\item  \textsl{Datové sady – Národní katalog otevřených dat (NKOD)} [online] [cit. 28. 1. 2019].\\
+Dostupné z: \href{https://data.gov.cz/datov\%C3\%A9-sady?dotaz=&fbclid=IwAR2jg2NvnsjO7BuHAgbXSJwh6VXFbsuXs0FONcle5ZfdPpO86Z_2C3YUQsU}{https://data.gov.cz/}
+
+\item  \textsl{LaTeX/Source Code Listing} [online] [cit. 28. 1. 2019].\\
+Dostupné z: \href{https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings}{https://en.wikibooks.org/}
+
+\end{enumerate}
+
+\end{document}
