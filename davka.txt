@@ -1,0 +1,23 @@
+sEMESTRÁLNÍ PROJEKT UZPD18_d
+---------------------------------------------------------------------
+ZIMNÍ SEMESTR 2018/2019
+---------------------------------------------------------------------
+TEREZA KULOVANÁ, MARKÉTA PECENOVÁ
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+VRSTVY
+
+1) adresni_mista
+
+CREATE TABLE adresni_mista AS
+	SELECT kod, cislodomovni, cisloorientacni, geom
+	FROM ruian_praha.adresnimista
+
+ALTER TABLE adresni_mista ADD PRIMARY KEY(kod)
+
+CREATE index adresy_index ON adresni_mista(geom)
+
+SELECT kod FROM adresni_mista WHERE NOT st_isvalid(geom)
+
+DELETE FROM adresni_mista WHERE geom IS NULL
