@@ -25,29 +25,109 @@ DELETE FROM adresni_mista WHERE geom IS NULL
 
 ---------------------------------------------------------------------
 
-2) detska_hriste
+2) obvody
 
+CREATE TABLE obvody AS
+    SELECT ogc_fid, nazev, geom
+    FROM ruian_praha.spravniobvody
 
----------------------------------------------------------------------
+ALTER TABLE obvody ADD PRIMARY KEY(ogc_fid)
 
-3) zdrav_zarizeni
-
-
----------------------------------------------------------------------
-
-4) odpad
-
+SELECT nazev FROM obvody WHERE NOT st_isvalid(geom)
 
 ---------------------------------------------------------------------
 
-5) metro
+3) detska_hriste
 
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/detska_hriste.json" -nln uzpd18_d.detska_hriste
+
+ALTER TABLE detska_hriste
+    DROP COLUMN url,
+    DROP COLUMN name,
+    DROP COLUMN perex,
+    DROP COLUMN content,
+    DROP COLUMN address,
+    DROP COLUMN properties,
+    DROP COLUMN image
+
+ALTER TABLE detska_hriste
+    RENAME wkb_geometry TO geom
 
 ---------------------------------------------------------------------
 
-6) zaplava2013
+4) zdrav_zarizeni
 
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zdrav_zarizeni.json" -nln uzpd18_d.zdrav_zarizeni
 
+ALTER TABLE zdrav_zarizeni
+    DROP COLUMN id,
+    DROP COLUMN address,
+    DROP COLUMN email,
+    DROP COLUMN web,
+    DROP COLUMN telephone,
+    DROP COLUMN opening_hours
+
+ALTER TABLE zdrav_zarizeni
+    RENAME wkb_geometry TO geom
+
+---------------------------------------------------------------------
+
+5) odpad
+
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
+
+ALTER TABLE odpad
+    DROP COLUMN objectid,
+    DROP COLUMN id,
+    DROP COLUMN stationnumber,
+    DROP COLUMN stationname,
+    DROP COLUMN citydistrictruiancode
+
+ALTER TABLE odpad
+    RENAME wkb_geometry TO geom
+
+---------------------------------------------------------------------
+
+6) metro
+
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
+
+ALTER TABLE metro
+    DROP COLUMN objectid,
+    DROP COLUMN vstupy_kod,
+    DROP COLUMN vstupy_linka,
+    DROP COLUMN vstupy_vest_kod,
+    DROP COLUMN vstupy_vest_nazev,
+    DROP COLUMN vstupy_vazba_bus,
+    DROP COLUMN vstupy_vazba_csad,
+    DROP COLUMN vstupy_vazba_kr,
+    DROP COLUMN vstupy_vazba_pr,
+    DROP COLUMN vstupy_vazba_privoz,
+    DROP COLUMN vstupy_vazba_taxi,
+    DROP COLUMN vstupy_vazba_tram,
+    DROP COLUMN vstupy_vazba_vlak,
+    DROP COLUMN zast_uzel_cislo,
+    DROP COLUMN vstupy_popis,
+    DROP COLUMN poskyt,
+    DROP COLUMN vstupy_mimo_provoz
+
+ALTER TABLE metro
+    RENAME wkb_geometry TO geom,
+    RENAME vstupy_uzel_nazev TO nazev
+
+---------------------------------------------------------------------
+
+7) zaplava2013
+
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
+
+ALTER TABLE zaplava2013
+    DROP COLUMN objectid,
+    DROP COLUMN nazev,
+    DROP COLUMN typ
+
+ALTER TABLE zaplava2013
+    RENAME wkb_geometry TO geom
 
 SELECT id, geom, st_isvalidreason(geom) FROM uzpd18_d.zaplava2013 WHERE NOT st_isvalid(geom)
 

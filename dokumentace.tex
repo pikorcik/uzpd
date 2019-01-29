@@ -115,10 +115,11 @@ Schéma \textit{ruian\_praha} je součástí databáze \textbf{pgis\_uzpd} a je 
 Vrstvy:
 \begin{itemize}
 \item \textsl{adresni\_mista} (adresnimista)
+\item \textsl{obvody} (spravniobvody)
 \end{itemize}
 
 \subsubsection{Otevřená data}
-Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají uvedené jako  pos\-ky\-tovatele \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Geometrie všech vrstev je reprezentována bodem. Až na poslední uvedenou vrstvu byla data stažena v souřadnicovém systému WGS84 (S-JTSK nebyl k dispozici), pouze vrstva \textsl{Vstupy do metra} byla stažena přímo v S-JTSK.\\
+Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají uvedené jako  pos\-ky\-tovatele \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Geometrie všech vrstev je reprezentována bodem. Data byla stažena ve formátu geoJSON a až na poslední uvedenou vrstvu byla v souřadnicovém systému WGS84 (S-JTSK nebyl k dispozici). Pouze \textsl{Vstupy do metra} byly staženy přímo v S-JTSK.\\
 
 Vrstvy:  
 \begin{itemize}
@@ -129,7 +130,7 @@ Vrstvy:
 \end{itemize}
 
 \subsubsection{Geoportál Praha}
-Ze stránek \textit{Geoportál Praha} byla stažena tématická vrstva zachycující zaplavené území Prahy při povodních v roce 2013. Geometrie této vrstvy je polygon v S-JTSK. K dispozici ke stažení bylo vrstev mnohem více, například záplavové čáry pro stoletou/padesátiletou/dvacetiletou vodu atd. Pro zjednodušení byla stažena data, který byla ucelená a nejaktuálnější.\\
+Ze stránek \textit{Geoportál Praha} byla stažena tématická vrstva zachycující zaplavené území Prahy při povodních v roce 2013. Geometrie této vrstvy je polygon a data byla stažena ve formátu geoJSON v systému JTSK. K dispozici ke stažení bylo vrstev mnohem více, například záplavové čáry pro stoletou/padesátiletou/dvacetiletou vodu atd. Pro zjednodušení byla stažena data, který byla ucelená a nejaktuálnější.\\
 
 Vrstvy:
 \begin{itemize}
@@ -139,14 +140,14 @@ Vrstvy:
 \section{Zpracování dat}
 \subsection{ruian\_praha}
 \subsubsection*{Adresní místa}
-Data byla stažena ze schématu \textit{ruian\_praha} (vrstva \textit{adresnimista}) do nově vytvořené tabulky \textsl{adresni\_mista}. Z původních dat byly ponechány zkopírovaný pouze sloupečky \textsl{kód}, \textsl{číslo popisné}, \textsl{číslo orientační} a sloupeček s geometrií \textsl{geom}. 
+Data byla stažena ze schématu \textit{ruian\_praha} (vrstva \textit{adresnimista}) do nově vytvořené tabulky \textsl{adresni\_mista}. Z původních dat byly zkopírovaný pouze sloupečky \textsl{kód}, \textsl{číslo popisné}, \textsl{číslo orientační} a sloupeček s geometrií \textsl{geom}. 
 \begin{lstlisting}
 CREATE TABLE adresni_mista AS
     SELECT kod, cislodomovni, cisloorientacni, geom
     FROM ruian_praha.adresnimista
 \end{lstlisting}
 
-Následně byly nad sloupečkem \textsl{kód} nastaven primární klíč a nad sloupečkem \textsl{geom} nastaven prostorový index.
+Následně byly nad sloupečkem \textsl{kód} nastaven primární klíč a nad sloupečkem \textsl{geom} prostorový index.
 \begin{lstlisting}
 ALTER TABLE adresni_mista ADD PRIMARY KEY(kod)
 
@@ -162,21 +163,199 @@ Při zběžném prohlédnutí již zpracovaných dat bylo zjištěno, že výše
 DELETE FROM adresni_mista WHERE geom IS NULL
 \end{lstlisting}
 
+\subsubsection*{Správní obvody Prahy}
+Data byla stažena ze schématu \textit{ruian\_praha} (vrstva \textit{spravniobvody}) do nově vytvořené tabulky \textsl{obvody}. Geometrie dat je \textit{multipolygon} a představují jednotlivé pražské správní obvody. Z původních dat byly zkopírovaný pouze sloupečky \textsl{ogc\_fid}, \textsl{název} a sloupeček s geometrií \textsl{geom}. 
+\begin{lstlisting}
+CREATE TABLE obvody AS
+    SELECT ogc_fid, nazev, geom
+    FROM ruian_praha.spravniobvody
+\end{lstlisting}
+
+Následně byly nad sloupečkem \textsl{ogc\_fid} nastaven primární klíč.
+\begin{lstlisting}
+ALTER TABLE obvody ADD PRIMARY KEY(ogc_fid)
+\end{lstlisting}
+
+Na závěr byla provedena kontrola validity geometrie, která vyšla negativní.
+\begin{lstlisting}
+SELECT nazev FROM obvody WHERE NOT st_isvalid(geom)
+\end{lstlisting}
+
 \subsection{Otevřená data}
+Všechna data z tohoto zdroje byla stažena ve formátu geoJSON a převážně v systému WGS84 (výjimka: vrstva \textit{metro} bylo od počátku v S-JTSK). Postup při zpracování těchto dat byl obdobný. Data byla nahrána do příslušného schématu pomocí nástroje \textit{ogr2ogr}, a přímo v databázi byly daným vrstvám promazány nepotřebné sloupečky a přejmenován sloupeček s geometrií, který po nahrání dávkou získal uživatelsky nepřívětivý název \textit{wkb\_ge\-o\-metry}.\\
+
+Jelikož se geometrie všech vrstev byla \textit{bod}, pro kontrolu validity byla pro všechny použita stejná funkce:
+\begin{lstlisting}
+SELECT ogc_fic FROM nazev_tabulky WHERE NOT st_isvalid(geom)
+\end{lstlisting}
 
 \subsubsection*{Dětská hřiště Praha}
+Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/detska_hriste.json" -nln uzpd18_d.detska_hriste
+\end{lstlisting}
+
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE detska_hriste
+    DROP COLUMN url,
+    DROP COLUMN name,
+    DROP COLUMN perex,
+    DROP COLUMN content,
+    DROP COLUMN address,
+    DROP COLUMN properties,
+    DROP COLUMN image
+\end{lstlisting}
+Přejmenování sloupečku s geometrií:
+\begin{lstlisting}
+ALTER TABLE detska_hriste
+    RENAME wkb_geometry TO geom
+\end{lstlisting} 
+ 
+Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{4}{|c|}{\textbf{detska\_hriste}} \\ \hline
+ogc\_fid     & geom     & id     & district    \\ \hline
+\end{tabular}
+\end{table}
 
 \subsubsection*{Lékárny a zdravotnická zařízení v Praze}
+Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
+
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zdrav_zarizeni.json" -nln uzpd18_d.zdrav_zarizeni
+\end{lstlisting}
+
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE zdrav_zarizeni
+    DROP COLUMN id,
+    DROP COLUMN address,
+    DROP COLUMN email,
+    DROP COLUMN web,
+    DROP COLUMN telephone,
+    DROP COLUMN opening_hours
+\end{lstlisting}
+
+Přejmenování sloupečku s geometrií:
+\begin{lstlisting}
+ALTER TABLE zdrav_zarizeni
+    RENAME wkb_geometry TO geom
+\end{lstlisting} 
+
+Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\multicolumn{5}{|c|}{\textbf{zdrav\_zarizeni}} \\ \hline
+ogc\_fid   & geom  & name  & type  & district  \\ \hline
+\end{tabular}
+\end{table}
+
 
 \subsubsection*{Mapa košů na tříděný odpad}
+Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
+\end{lstlisting}
+
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE odpad
+    DROP COLUMN objectid,
+    DROP COLUMN id,
+    DROP COLUMN stationnumber,
+    DROP COLUMN stationname,
+    DROP COLUMN citydistrictruiancode
+\end{lstlisting}
+Přejmenování sloupečku s geometrií:
+\begin{lstlisting}
+ALTER TABLE odpad
+    RENAME wkb_geometry TO geom
+\end{lstlisting} 
+
+Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{4}{|c|}{\textbf{odpad}}     \\ \hline
+ogc\_fid & geom & citydistrict & pristup \\ \hline
+\end{tabular}
+\end{table}
 
 \subsubsection*{Vstupy do metra}
+Jelikož data již v S-JTSK byla, nebylo během importu nutné provést transformaci. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
+\end{lstlisting}
+
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE metro
+    DROP COLUMN objectid,
+    DROP COLUMN vstupy_kod,
+    DROP COLUMN vstupy_linka,
+    DROP COLUMN vstupy_vest_kod,
+    DROP COLUMN vstupy_vest_nazev,
+    DROP COLUMN vstupy_vazba_bus,
+    DROP COLUMN vstupy_vazba_csad,
+    DROP COLUMN vstupy_vazba_kr,
+    DROP COLUMN vstupy_vazba_pr,
+    DROP COLUMN vstupy_vazba_privoz,
+    DROP COLUMN vstupy_vazba_taxi,
+    DROP COLUMN vstupy_vazba_tram,
+    DROP COLUMN vstupy_vazba_vlak,
+    DROP COLUMN zast_uzel_cislo,
+    DROP COLUMN vstupy_popis,
+    DROP COLUMN poskyt,
+    DROP COLUMN vstupy_mimo_provoz
+\end{lstlisting}
+Přejmenování sloupečku s geometrií a názvu stanic:
+\begin{lstlisting}
+ALTER TABLE metro
+    RENAME wkb_geometry TO geom,
+    RENAME vstupy_uzel_nazev TO nazev
+\end{lstlisting} 
+
+Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\multicolumn{3}{|c|}{\textbf{metro}} \\ \hline
+ogc\_fid      & geom     & nazev     \\ \hline
+\end{tabular}
+\end{table}
+
 
 \subsection{Geoportál Praha}
 \subsubsection*{Záplavové území 2013}
-Ze stránek portálu \textit{Geoportál Praha} byla data stažena ve formátu GeoJSON v systému JTSK.\\
+Ze stránek portálu \textit{Geoportál Praha} byla data stažena ve formátu GeoJSON v systému JTSK, takže nebylo nutné provádět jejich další transformaci. Data byla nahrána do příslušného schématu pomocí nástroje \textit{ogr2ogr}. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:\\
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
+\end{lstlisting}
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE zaplava2013
+    DROP COLUMN objectid,
+    DROP COLUMN nazev,
+    DROP COLUMN typ
+\end{lstlisting}
+Přejmenování sloupečku s geometrií:
+\begin{lstlisting}
+ALTER TABLE zaplava2013
+    RENAME wkb_geometry TO geom
+\end{lstlisting} 
 
-nahrání dat \\
 Opět byla potřeba provést validita geometrie (polygonů). Níže uvedeným příkazem byly zjištěny chyby v datech:
 \begin{lstlisting}
 SELECT id, geom, st_isvalidreason(geom) FROM uzpd18_d.zaplava2013 WHERE NOT st_isvalid(geom)
@@ -187,7 +366,32 @@ Ukázalo se, že nevalidní byly 4 polygony z celkových 86. Jako příčina tě
 UPDATE uzpd18_d.zaplava2013 SET geom = st_buffer(geom, 0.0) WHERE NOT st_isvalid(geom)
 \end{lstlisting}
 
+Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{4}{|c|}{\textbf{zaplava2013}}    \\ \hline
+ogc\_fid & geom & shape\_length & shape\_area \\ \hline
+\end{tabular}
+\end{table}
 \clearpage
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \begin{comment}
 \section{Aplikace}
 V následují kapitole je představen vizuální vzhled vytvořené aplikace tak, jak ji vidí prostý uživatel.
