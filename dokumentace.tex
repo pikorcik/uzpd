@@ -34,6 +34,7 @@
   numberstyle=\tiny\color{mygray},
   keepspaces=true, 
   breakatwhitespace=false, 
+  breaklines=true, 
   language=sql,
 }
 
@@ -99,77 +100,92 @@ Markéta Pecenová \\
 Navrhněte a vytvořte tématické vrstvy (např. vodní toky, vodní plochy, lesy, silnice, železnice apod.) na základě dat \textit{OpenStreetMap} a další otevřených zdrojů. Aplikujte testy datové integrity a odstraňte případné nekonzistence v datech. Vytvořte tutoriál - tj. sadu atributových a prostorových dotazů nad databází \textbf{pgis\_uzpd}.
 
 \subsection{Zvolené téma}
-Jako téma pro semestrální projekt byla zvolena analýza kvality bydlení v Praze. Jelikož je toto téma velmi obecné a obsáhlé, bylo nutné zvolit užší zaměření. Z mnoha podkladů, které byly k dispozici, byly vybrány datové vrstvy, které nějak souvisely s občanskou vybaveností nebo zdravím obyvatel Prahy. Výsledným produktem je sada atributových a prostorových dotazů, které hodnotí kvalitu místa pro život na základě zvolených vstupních ukazatelů kvality. 
+Jako téma pro semestrální projekt byla zvolena analýza kvality bydlení v Praze. Jelikož je toto téma velmi obecné a obsáhlé, bylo nutné zvolit užší zaměření. Z mnoha podkladů, které byly k dispozici, byly vybrány datové vrstvy, které nějak souvisely s občanskou vybaveností nebo zdravím obyvatel Prahy. Výsledným produktem je sada atributových a prostorových dotazů, které vyhodnocují kvalitu místa pro život na základě zvolených vstupních ukazatelů kvality. 
 \clearpage
 
-\section{Zpracování dat}
-V rámci projektu bylo nutné získat potřebná vstupní data, nahrát je do příslušné databáze a zajistit jejich konzistenci. Nad těmito daty pak byly následně provedeny prostorové sql dotazy.
+\section{Data}
+V rámci projektu bylo nutné získat potřebná vstupní data, nahrát je do databáze a zajistit jejich konzistenci. Nad těmito daty pak byly následně provedeny prostorové dotazy.
 
 \subsection{Data a tématické vrstvy}
-Data použitá v rámci projektu pochází ze tří zdrojů zdrojů: ze schématu \textit{ruian\_praha}, portálů \textit{Otevřená data} a \textit{Geoportál Praha}.
+Data použitá v rámci projektu pochází ze tří zdrojů: ze schématu \textit{ruian\_praha}, portálů \textit{Otevřená data} a \textit{Geoportál Praha}.
 
 \subsubsection{ruain\_praha}
-Schéma \textsl{ruian\_praha} je součástí databáze \textbf{pgis\_uzpd} a je v souřadnicovém systému JTSK.\\
+Schéma \textit{ruian\_praha} je součástí databáze \textbf{pgis\_uzpd} a je v souřadnicovém systému JTSK.\\
 
 Vrstvy:
 \begin{itemize}
-\item \textsl{adresnimista}
+\item \textsl{adresni\_mista} (adresnimista)
 \end{itemize}
 
 \subsubsection{Otevřená data}
-Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají jako poskytovatele uvedeného \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Zároveň je geometrie všech vrstev reprezentována bodem. Až na poslední uvedenou vrstvu byla data stažena v souřadnicovém systému WGS84, pouze vrstva \textsl{Vstupy do metra} byla stažena přímo v S-JTSK.\\
+Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají uvedené jako  pos\-ky\-tovatele \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Geometrie všech vrstev je reprezentována bodem. Až na poslední uvedenou vrstvu byla data stažena v souřadnicovém systému WGS84 (S-JTSK nebyl k dispozici), pouze vrstva \textsl{Vstupy do metra} byla stažena přímo v S-JTSK.\\
 
 Vrstvy:  
 \begin{itemize}
-\item \textsl{Dětská hřiště Praha} [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-detska-hriste-praha}{Zdroj}]
-\item \textsl{Lékárny a zdravotnická zařízení v Praze} [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-lekarny-a-zdravotnicka-zarizeni-v-praze}{Zdroj}]
-\item \textsl{Mapa košů na tříděný odpad} [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-mapa-trideny-odpad}{Zdroj}]
-\item \textsl{Vstupy do metra} [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-ipr-prazska_integrovana_doprava_-_vstupy_do_metra}{Zdroj}]
+\item \textsl{detska\_hriste} (Dětská hřiště Praha, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-detska-hriste-praha}{Zdroj}])
+\item \textsl{zdrav\_zarizeni} (Lékárny a zdravotnická zařízení v Praze, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-lekarny-a-zdravotnicka-zarizeni-v-praze}{Zdroj}])
+\item \textsl{odpad} (Mapa košů na tříděný odpad, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-mapa-trideny-odpad}{Zdroj}])
+\item \textsl{metro} (Vstupy do metra, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-ipr-prazska_integrovana_doprava_-_vstupy_do_metra}{Zdroj}])
 \end{itemize}
 
 \subsubsection{Geoportál Praha}
-Ze stránek \textit{Geoportál Praha} byla stažena tématická vrstva zachycující zaplavené území Prahy při povodních v roce 2013. Geometrie této vrstvy je polygon v S-JTSK. \\
+Ze stránek \textit{Geoportál Praha} byla stažena tématická vrstva zachycující zaplavené území Prahy při povodních v roce 2013. Geometrie této vrstvy je polygon v S-JTSK. K dispozici ke stažení bylo vrstev mnohem více, například záplavové čáry pro stoletou/padesátiletou/dvacetiletou vodu atd. Pro zjednodušení byla stažena data, který byla ucelená a nejaktuálnější.\\
 
 Vrstvy:
 \begin{itemize}
-\item \textsl{Záplavové území 2013} [\href{http://www.geoportalpraha.cz/cs/opendata/C121457E-5450-42D0-9009-204D8D899A06#.XE9PwWlCfIV}{Zdroj}]
+\item \textsl{zaplavy2013} (Záplavové území 2013, [\href{http://www.geoportalpraha.cz/cs/opendata/C121457E-5450-42D0-9009-204D8D899A06#.XE9PwWlCfIV}{Zdroj}])
 \end{itemize}
 
-\subsection{Zpracování dat}
-
-
-\subsection{Adresní místa (RÚIAN-Praha)}
-
+\section{Zpracování dat}
+\subsection{ruian\_praha}
+\subsubsection*{Adresní místa}
+Data byla stažena ze schématu \textit{ruian\_praha} (vrstva \textit{adresnimista}) do nově vytvořené tabulky \textsl{adresni\_mista}. Z původních dat byly ponechány zkopírovaný pouze sloupečky \textsl{kód}, \textsl{číslo popisné}, \textsl{číslo orientační} a sloupeček s geometrií \textsl{geom}. 
 \begin{lstlisting}
 CREATE TABLE adresni_mista AS
-	SELECT kod, cislodomovni, cisloorientacni, geom
-	FROM ruian_praha.adresnimista
+    SELECT kod, cislodomovni, cisloorientacni, geom
+    FROM ruian_praha.adresnimista
 \end{lstlisting}
 
+Následně byly nad sloupečkem \textsl{kód} nastaven primární klíč a nad sloupečkem \textsl{geom} nastaven prostorový index.
 \begin{lstlisting}
 ALTER TABLE adresni_mista ADD PRIMARY KEY(kod)
-\end{lstlisting}
 
-\begin{lstlisting}
 CREATE index adresy_index ON adresni_mista(geom)
 \end{lstlisting}
 
+Na závěr byla provedena kontrola validity geometrie, která vyšla negativní.
 \begin{lstlisting}
 SELECT kod FROM adresni_mista WHERE NOT st_isvalid(geom)
 \end{lstlisting}
-
+Při zběžném prohlédnutí již zpracovaných dat bylo zjištěno, že výše uvedená funkce na kontrolu validity nefunguje zcela správně, jelikož neodstranila záznamy které měly ve sloupečku pro geometrii uvedenou hodnotu \textit{NULL}. Bylo tedy nutné provést dodatečné pročištění dat níže uvedeným příkazem:
 \begin{lstlisting}
 DELETE FROM adresni_mista WHERE geom IS NULL
 \end{lstlisting}
 
-\subsection{Adresní místa (RÚIAN)}
+\subsection{Otevřená data}
 
-\subsection{Adresní místa (RÚIAN)}
+\subsubsection*{Dětská hřiště Praha}
 
-\subsection{Adresní místa (RÚIAN)}
+\subsubsection*{Lékárny a zdravotnická zařízení v Praze}
 
-\subsection{Adresní místa (RÚIAN)}
+\subsubsection*{Mapa košů na tříděný odpad}
 
+\subsubsection*{Vstupy do metra}
+
+\subsection{Geoportál Praha}
+\subsubsection*{Záplavové území 2013}
+Ze stránek portálu \textit{Geoportál Praha} byla data stažena ve formátu GeoJSON v systému JTSK.\\
+
+nahrání dat \\
+Opět byla potřeba provést validita geometrie (polygonů). Níže uvedeným příkazem byly zjištěny chyby v datech:
+\begin{lstlisting}
+SELECT id, geom, st_isvalidreason(geom) FROM uzpd18_d.zaplava2013 WHERE NOT st_isvalid(geom)
+\end{lstlisting}
+Ukázalo se, že nevalidní byly 4 polygony z celkových 86. Jako příčina těchto chyb se ukázala tzv. \textit{Ring-self Intersection} polygonů. Nevalidní polygony byly opraveny vytvoře\-ním \textit{bufferu} o velikosti 0. 
+
+\begin{lstlisting}
+UPDATE uzpd18_d.zaplava2013 SET geom = st_buffer(geom, 0.0) WHERE NOT st_isvalid(geom)
+\end{lstlisting}
 
 \clearpage
 \begin{comment}
@@ -291,9 +307,6 @@ Dostupné z: \href{http://www.geoportalpraha.cz/cs/opendata?fbclid=IwAR3dvAz20d2
 
 \item  \textsl{Datové sady – Národní katalog otevřených dat (NKOD)} [online] [cit. 28. 1. 2019].\\
 Dostupné z: \href{https://data.gov.cz/datov\%C3\%A9-sady?dotaz=&fbclid=IwAR2jg2NvnsjO7BuHAgbXSJwh6VXFbsuXs0FONcle5ZfdPpO86Z_2C3YUQsU}{https://data.gov.cz/}
-
-\item  \textsl{Otevřená data} [online] [cit. 28. 1. 2019].\\
-Dostupné z: \href{http://www.geoportalpraha.cz/cs/opendata#.XE9RnWlCfIU}{http://www.geoportalpraha.cz/}
 
 \item  \textsl{LaTeX/Source Code Listing} [online] [cit. 28. 1. 2019].\\
 Dostupné z: \href{https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings}{https://en.wikibooks.org/}
