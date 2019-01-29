@@ -125,17 +125,18 @@ Vrstvy:
 \begin{itemize}
 \item \textsl{detska\_hriste} (Dětská hřiště Praha, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-detska-hriste-praha}{Zdroj}])
 \item \textsl{zdrav\_zarizeni} (Lékárny a zdravotnická zařízení v Praze, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-lekarny-a-zdravotnicka-zarizeni-v-praze}{Zdroj}])
-\item \textsl{odpad} (Mapa košů na tříděný odpad, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-mapa-trideny-odpad}{Zdroj}])
 \item \textsl{metro} (Vstupy do metra, [\href{https://data.gov.cz/datov%C3%A1-sada?iri=https%3A%2F%2Fdata.gov.cz%2Fzdroj%2Fdatov%C3%A1-sada%2Fhttp---opendata.praha.eu-api-3-action-package_show-id-ipr-prazska_integrovana_doprava_-_vstupy_do_metra}{Zdroj}])
 \end{itemize}
 
 \subsubsection{Geoportál Praha}
-Ze stránek \textit{Geoportál Praha} byla stažena tématická vrstva zachycující zaplavené území Prahy při povodních v roce 2013. Geometrie této vrstvy je polygon a data byla stažena ve formátu geoJSON v systému JTSK. K dispozici ke stažení bylo vrstev mnohem více, například záplavové čáry pro stoletou/padesátiletou/dvacetiletou vodu atd. Pro zjednodušení byla stažena data, který byla ucelená a nejaktuálnější.\\
+Ze stránek \textit{Geoportál Praha} byla stažena tématická data zachycující rozmístění košů na tříděný odpad a data zaplaveného území Prahy při povodních v roce 2013. Data byla stažena ve formátu geoJSON v systému JTSK. Geometrie rozmíštění košů je \textit{bod} a zaplaveného území \textit{polygon}. Pro povodňová data bylo k dispozici ke stažení vrstev mnohem více, například záplavové čáry pro stoletou/padesátiletou/dvacetiletou vodu atd. Pro zjednodušení byla stažena data, který byla ucelená (zachycující jedno období) a nejaktuálnější.\\
 
 Vrstvy:
 \begin{itemize}
+\item \textsl{odpad} (Mapa košů na tříděný odpad, [\href{http://www.geoportalpraha.cz/cs/opendata/DBD0F925-78BF-478D-8FB8-8B3BDE9BD581#.XFDFzGlCfIV}{Zdroj}])
 \item \textsl{zaplavy2013} (Záplavové území 2013, [\href{http://www.geoportalpraha.cz/cs/opendata/C121457E-5450-42D0-9009-204D8D899A06#.XE9PwWlCfIV}{Zdroj}])
 \end{itemize}
+
 
 \section{Zpracování dat}
 \subsection{ruian\_praha}
@@ -182,19 +183,19 @@ SELECT nazev FROM obvody WHERE NOT st_isvalid(geom)
 \end{lstlisting}
 
 \subsection{Otevřená data}
-Všechna data z tohoto zdroje byla stažena ve formátu geoJSON a převážně v systému WGS84 (výjimka: vrstva \textit{metro} bylo od počátku v S-JTSK). Postup při zpracování těchto dat byl obdobný. Data byla nahrána do příslušného schématu pomocí nástroje \textit{ogr2ogr}, a přímo v databázi byly daným vrstvám promazány nepotřebné sloupečky a přejmenován sloupeček s geometrií, který po nahrání dávkou získal uživatelsky nepřívětivý název \textit{wkb\_ge\-o\-metry}.\\
+Všechna data z tohoto zdroje byla stažena ve formátu geoJSON a byla převážně v systému WGS84 (výjimka: vrstva \textit{metro} bylo od počátku v S-JTSK). Postup při zpracování těchto dat byl obdobný. Data byla importována do příslušného schématu pomocí nástroje \textit{ogr2ogr} a přímo v databázi byly v tabulkách promazány nepotřebné sloupečky a přejmenován sloupeček s geometrií, který po nahrání dávkou získal uživatelsky nepřívětivý název \textit{wkb\_ge\-o\-metry}.\\
 
-Jelikož se geometrie všech vrstev byla \textit{bod}, pro kontrolu validity byla pro všechny použita stejná funkce:
+Během importu do databáze bylo u některých dat nutné provést transformaci ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Transformaci zajišťovala část kódu \linebreak \textsl{-t\_srs 'EPSG:5514'}. Nebyla-li transformace nutná, nahradila se tato část kódu za \textsl{-a\_srs 'EPSG:5514'}. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden obecný kód pro nahrání souboru do příslušného schématu databáze (s transformací do S-JTSK):
+
+\begin{lstlisting}
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "input.json" -nln uzpd18_d.table
+\end{lstlisting}
+Jelikož geometrie všech vrstev byla \textit{bod}, pro kontrolu validity byla pro všechny vrstvy použita stejná funkce:
 \begin{lstlisting}
 SELECT ogc_fic FROM nazev_tabulky WHERE NOT st_isvalid(geom)
 \end{lstlisting}
 
 \subsubsection*{Dětská hřiště Praha}
-Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
-\begin{lstlisting}
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/detska_hriste.json" -nln uzpd18_d.detska_hriste
-\end{lstlisting}
-
 Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
 \begin{lstlisting}
 ALTER TABLE detska_hriste
@@ -211,9 +212,7 @@ Přejmenování sloupečku s geometrií:
 ALTER TABLE detska_hriste
     RENAME wkb_geometry TO geom
 \end{lstlisting} 
- 
-Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
-
+Výsledná tabulka má tyto sloupce:
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|c|}
@@ -224,12 +223,6 @@ ogc\_fid     & geom     & id     & district    \\ \hline
 \end{table}
 
 \subsubsection*{Lékárny a zdravotnická zařízení v Praze}
-Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
-
-\begin{lstlisting}
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zdrav_zarizeni.json" -nln uzpd18_d.zdrav_zarizeni
-\end{lstlisting}
-
 Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
 \begin{lstlisting}
 ALTER TABLE zdrav_zarizeni
@@ -240,15 +233,12 @@ ALTER TABLE zdrav_zarizeni
     DROP COLUMN telephone,
     DROP COLUMN opening_hours
 \end{lstlisting}
-
 Přejmenování sloupečku s geometrií:
 \begin{lstlisting}
 ALTER TABLE zdrav_zarizeni
     RENAME wkb_geometry TO geom
 \end{lstlisting} 
-
-Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
-
+Výsledná tabulka má tyto sloupce:
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|c|c|}
@@ -258,46 +248,8 @@ ogc\_fid   & geom  & name  & type  & district  \\ \hline
 \end{tabular}
 \end{table}
 
-
-\subsubsection*{Mapa košů na tříděný odpad}
-Během importu do databáze bylo nutné provést transformaci dat ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
-\begin{lstlisting}
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
-\end{lstlisting}
-
-Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
-\begin{lstlisting}
-ALTER TABLE odpad
-    DROP COLUMN objectid,
-    DROP COLUMN id,
-    DROP COLUMN stationnumber,
-    DROP COLUMN stationname,
-    DROP COLUMN citydistrictruiancode
-\end{lstlisting}
-Přejmenování sloupečku s geometrií:
-\begin{lstlisting}
-ALTER TABLE odpad
-    RENAME wkb_geometry TO geom
-\end{lstlisting} 
-
-Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
-
-\begin{table}[h!]
-\centering
-\begin{tabular}{|c|c|c|c|}
-\hline
-\multicolumn{4}{|c|}{\textbf{odpad}}     \\ \hline
-ogc\_fid & geom & citydistrict & pristup \\ \hline
-\end{tabular}
-\end{table}
-
 \subsubsection*{Vstupy do metra}
-Jelikož data již v S-JTSK byla, nebylo během importu nutné provést transformaci. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:
-\begin{lstlisting}
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
-\end{lstlisting}
-
-Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+Jelikož stažená data byla již v S-JTSK, část kódu zajišťující transformaci při importu byla nahrazena za \textsl{-a\_srs 'EPSG:5514'}. Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
 \begin{lstlisting}
 ALTER TABLE metro
     DROP COLUMN objectid,
@@ -324,9 +276,7 @@ ALTER TABLE metro
     RENAME wkb_geometry TO geom,
     RENAME vstupy_uzel_nazev TO nazev
 \end{lstlisting} 
-
-Na závěr byla provedena kontrola validity geometrie. Výsledná tabulka má tyto sloupce:
-
+Výsledná tabulka má tyto sloupce:
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|}
@@ -338,11 +288,42 @@ ogc\_fid      & geom     & nazev     \\ \hline
 
 
 \subsection{Geoportál Praha}
-\subsubsection*{Záplavové území 2013}
-Ze stránek portálu \textit{Geoportál Praha} byla data stažena ve formátu GeoJSON v systému JTSK, takže nebylo nutné provádět jejich další transformaci. Data byla nahrána do příslušného schématu pomocí nástroje \textit{ogr2ogr}. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden kód pro nahrání souboru do příslušného schématu databáze:\\
+Data získaná z tohoto portálu byla stažena ve formátu geoJSON v systému JTSK. Zpracování dat probíhalo obdobně jako u předchozího zdroje dat s výjimkou, že při importu nebylo nutné provádět transformaci. Obecný kód pro nahrání souboru do příslušného schématu databáze (bez transformace do S-JTSK): 
 \begin{lstlisting}
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "input.json" -nln uzpd18_d.table
 \end{lstlisting}
+
+\subsubsection*{Mapa košů na tříděný odpad}
+Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
+\begin{lstlisting}
+ALTER TABLE odpad
+    DROP COLUMN objectid,
+    DROP COLUMN id,
+    DROP COLUMN stationnumber,
+    DROP COLUMN stationname,
+    DROP COLUMN citydistrictruiancode
+\end{lstlisting}
+Přejmenování sloupečku s geometrií:
+\begin{lstlisting}
+ALTER TABLE odpad
+    RENAME wkb_geometry TO geom
+\end{lstlisting} 
+Na závěr byla provedena kontrola validity geometrie. 
+\begin{lstlisting}
+SELECT ogc_fic FROM nazev_tabulky WHERE NOT st_isvalid(geom)
+\end{lstlisting}
+Výsledná tabulka má tyto sloupce:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{4}{|c|}{\textbf{odpad}}     \\ \hline
+ogc\_fid & geom & citydistrict & pristup \\ \hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Záplavové území 2013}
 Příkaz pro smazání sloupečků, které pro další práci s daty nebyly nutné:
 \begin{lstlisting}
 ALTER TABLE zaplava2013
@@ -355,17 +336,14 @@ Přejmenování sloupečku s geometrií:
 ALTER TABLE zaplava2013
     RENAME wkb_geometry TO geom
 \end{lstlisting} 
-
-Opět byla potřeba provést validita geometrie (polygonů). Níže uvedeným příkazem byly zjištěny chyby v datech:
+Opět bylo nutné zkontrolovat validitu geometrie (polygonů). Níže uvedeným příkazem byly zjištěny chyby v datech:
 \begin{lstlisting}
 SELECT id, geom, st_isvalidreason(geom) FROM uzpd18_d.zaplava2013 WHERE NOT st_isvalid(geom)
 \end{lstlisting}
 Ukázalo se, že nevalidní byly 4 polygony z celkových 86. Jako příčina těchto chyb se ukázala tzv. \textit{Ring-self Intersection} polygonů. Nevalidní polygony byly opraveny vytvoře\-ním \textit{bufferu} o velikosti 0. 
-
 \begin{lstlisting}
 UPDATE uzpd18_d.zaplava2013 SET geom = st_buffer(geom, 0.0) WHERE NOT st_isvalid(geom)
 \end{lstlisting}
-
 Výsledná tabulka má tyto sloupce:
 
 \begin{table}[h!]

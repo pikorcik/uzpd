@@ -72,25 +72,9 @@ ALTER TABLE zdrav_zarizeni
 
 ---------------------------------------------------------------------
 
-5) odpad
+5) metro
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
-
-ALTER TABLE odpad
-    DROP COLUMN objectid,
-    DROP COLUMN id,
-    DROP COLUMN stationnumber,
-    DROP COLUMN stationname,
-    DROP COLUMN citydistrictruiancode
-
-ALTER TABLE odpad
-    RENAME wkb_geometry TO geom
-
----------------------------------------------------------------------
-
-6) metro
-
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
 
 ALTER TABLE metro
     DROP COLUMN objectid,
@@ -117,9 +101,25 @@ ALTER TABLE metro
 
 ---------------------------------------------------------------------
 
+6) odpad
+
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
+
+ALTER TABLE odpad
+    DROP COLUMN objectid,
+    DROP COLUMN id,
+    DROP COLUMN stationnumber,
+    DROP COLUMN stationname,
+    DROP COLUMN citydistrictruiancode
+
+ALTER TABLE odpad
+    RENAME wkb_geometry TO geom
+
+---------------------------------------------------------------------
+
 7) zaplava2013
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
 
 ALTER TABLE zaplava2013
     DROP COLUMN objectid,
