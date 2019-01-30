@@ -159,16 +159,16 @@ JOIN uzpd_d.zaplava2013 AS za
 ON st_intersects(zz.geom,za.geom);
 
 
-
 ---------------------------------------------------------------------
 
-3) Kolik adresních míst leí ve vzdálenosti do 500 m od vılezu ze stanice metra Depo Hostivaø?
+3) Jaké procento území Prahy zaujímá záplavové území z roku 2013?
 
-SELECT count(distinct a.kod) 
-FROM uzpd18_d.adresni_mista AS a
-JOIN uzpd18_d.metro AS m
-ON st_dwithin(a.geom, m.geom, 500)
-WHERE m.nazev = 'Depo Hostivaø';
+SELECT ROUND(
+(
+SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
+)::numeric / (
+SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
+)::numeric, 2)*100 AS procento_zaplava;
 
 
 
@@ -185,14 +185,13 @@ ON st_intersects(p.geom, o.geom);
 
 ---------------------------------------------------------------------
 
-5) Jaké procento území Prahy zaujímá záplavové území z roku 2013?
+5) Kolik adresních míst leí ve vzdálenosti do 500 m od vılezu ze stanice metra Depo Hostivaø?
 
-SELECT ROUND(
-(
-SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
-)::numeric / (
-SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
-)::numeric, 2)*100 AS procento_zaplava;
+SELECT count(distinct a.kod) 
+FROM uzpd18_d.adresni_mista AS a
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(a.geom, m.geom, 500)
+WHERE m.nazev = 'Depo Hostivaø';
 
 
 
@@ -278,18 +277,18 @@ LIMIT 1;
 
 11) Na území kterého praského správního obvodu se nachází nejvìtší mnoství dìtskıch høiš a kolik to je?
 
-
-
-
-
-
-
-
-
-
-
-
-
+SELECT o.nazev, COUNT(distinct dh.ogc_fid) 
+FROM uzpd18_d.obvody AS o 
+JOIN uzpd18_d.detska_hriste AS dh 
+ON st_intersects(dh.geom, o.geom) 
+GROUP BY o.nazev
+HAVING COUNT(distinct dh.ogc_fid) = (
+    SELECT COUNT(distinct dh.ogc_fid) FROM uzpd18_d.obvody AS o 
+    JOIN uzpd18_d.detska_hriste AS dh 
+    ON st_intersects(dh.geom, o.geom) 
+    GROUP BY o.nazev 
+    ORDER BY COUNT(distinct dh.ogc_fid) 
+    DESC LIMIT 1);
 
 
 ---------------------------------------------------------------------

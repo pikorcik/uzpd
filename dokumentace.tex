@@ -381,15 +381,16 @@ ON st_intersects(zz.geom,za.geom);
 Dr.Max LÉKÁRNA, praha-8
 \vspace{0.8cm}
 
-\subsubsection*{3) Kolik adresních míst leží ve vzdálenosti do 500 m od výlezu ze stanice metra Depo Hostivař?}
+\subsubsection*{3) Jaké procento území Prahy zaujímá záplavové území z roku 2013?}
 \begin{lstlisting}[language=html]
-SELECT count(distinct a.kod) 
-FROM uzpd18_d.adresni_mista AS a
-JOIN uzpd18_d.metro AS m
-ON st_dwithin(a.geom, m.geom, 500)
-WHERE m.nazev = 'Depo Hostiva<ř>';
+SELECT ROUND(
+(
+SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
+)::numeric / (
+SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
+)::numeric, 2)*100 AS procento_zaplava;
 \end{lstlisting}
-48
+5\%
 \vspace{0.8cm}
 
 \subsubsection*{4) Kolik košů na tříděný odpad se nachází na území Prahy 1?}
@@ -402,16 +403,15 @@ ON st_intersects(p.geom, o.geom);
 821
 \vspace{0.8cm}
 
-\subsubsection*{5) Jaké procento území Prahy zaujímá záplavové území z roku 2013?}
+\subsubsection*{5) Kolik adresních míst leží ve vzdálenosti do 500 m od výlezu ze stanice metra Depo Hostivař?}
 \begin{lstlisting}[language=html]
-SELECT ROUND(
-(
-SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
-)::numeric / (
-SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
-)::numeric, 2)*100 AS procento_zaplava;
+SELECT count(distinct a.kod) 
+FROM uzpd18_d.adresni_mista AS a
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(a.geom, m.geom, 500)
+WHERE m.nazev = 'Depo Hostiva<ř>';
 \end{lstlisting}
-5\%
+48
 \vspace{0.8cm}
 
 \subsubsection*{6) Jaká stanice metra na Praze 4 má nejvíce vstupů?}
@@ -492,23 +492,24 @@ LIMIT 1;
 Praha 22, 33660132, 70, 480859
 \vspace{0.8cm}
 
-\subsubsection*{11) Na území kterého pražského správního obvodu se nachází největší množství dětských hřišť a kolik to je?!!!!!!!!}
+\subsubsection*{11) Na území kterého pražského správního obvodu se nachází největší množství dětských hřišť a kolik to je?}
 \begin{lstlisting}[language=html]
 SELECT o.nazev, COUNT(distinct dh.ogc_fid) 
 FROM uzpd18_d.obvody AS o 
 JOIN uzpd18_d.detska_hriste AS dh 
 ON st_intersects(dh.geom, o.geom) 
+GROUP BY o.nazev
 HAVING COUNT(distinct dh.ogc_fid) = (
     SELECT COUNT(distinct dh.ogc_fid) FROM uzpd18_d.obvody AS o 
     JOIN uzpd18_d.detska_hriste AS dh 
     ON st_intersects(dh.geom, o.geom) 
     GROUP BY o.nazev 
-    ORDER BY COUNT(distinct dh.ogc_fid) 
-    DESC LIMIT 1);
+    ORDER BY COUNT(distinct dh.ogc_fid) DESC 
+    LIMIT 1);
 \end{lstlisting}
 \begin{flushleft}
-praha-3, 14 \linebreak
-praha-4, 14
+Praha 3, 14 \linebreak
+Praha 4, 14
 \end{flushleft}
 
 \subsubsection*{12) Jaké je id nejbližšího dětského hřiště pro adresní místo s kódem 22560840? V jaké leží vzdálenosti?}
@@ -523,13 +524,15 @@ WHERE a.kod = '22560840' AND st_distance(a.geom, dh.geom) = (
     LIMIT 1);
 \end{lstlisting}
 120, 506 m
-\vspace{0.8cm}
 
 \clearpage
 
 \section{Závěr}
+Na základě volně dostupných zdrojů dat byly navrženy a zpracovány tematické vrstvy. Nad těmito vrstvami byly následně aplikovány prostorové a atributové dotazy. Semestrální projekt nám přinesl další zkušenosti při zpracování prostorových dat a jejich uchování v databázích.\\
 
+Během zpracování se vyskytlo několik problémů. Prvním problémem se ukázalo býti zvolené téma. Samo o sobě je velmi široké a při jeho volbě nás nenapadlo, že by v tom mohla být potíž. Pro naši analýzu bylo k dispozici ke stažení velké množství dat, z nichž jsme se rozhodly použít jen několik zdrojů a ty zpracovat podrobněji. Použití velkého množství dat (a že se nám jich líbilo hodně) by zapříčinilo, že výsledek naší práce by nebyl tak kvalitně zpracován, jak bychom si přály. Nakonec se ukázalo, že použité datové vrstvy neobsahovaly takové množství užitečných informací, a bylo nutné smazat většinu sloupečků. Výsledek projektu odpovídá zvolenému tématu jen částečně, jelikož se nám povedla pouze analýza bydlení v Praze na základě zvolených tématických vrstev, nikoli komplexní jak jsme původně zamýšlely.\\
 
+Jako zádrhel při zpracování se ukázal import dat ve formátu geoJSON. Nikde jsme neobjevily přesný návod, jak importovat data tohoto typu do postGIS databáze přes příkazovou řádku, je-li součástí dávky i přihlašovací jméno a heslo do databáze. Správný zápis příkazu se nakonec povedlo nalézt. 
 \clearpage
 
 \section{Přílohy} 
