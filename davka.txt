@@ -143,8 +143,8 @@ SQL DOTAZY
 1) Kolik adresních míst bylo zatopeno bìhem povodní v roce 2013?
 
 SELECT COUNT(a.kod) 
-FROM uzpd_d.adresni_mista AS a
-JOIN (SELECT * FROM uzpd_d.zaplava2013) AS z
+FROM uzpd18_d.adresni_mista AS a
+JOIN (SELECT * FROM uzpd18_d.zaplava2013) AS z
 ON st_intersects(z.geom, a.geom);
 
 
@@ -154,8 +154,8 @@ ON st_intersects(z.geom, a.geom);
 2) Jaká zdravotnická zaøízení byla zasažena povodnìmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.
 
 SELECT zz.name, zz.district 
-FROM uzpd_d.zdrav_zarizeni AS zz
-JOIN uzpd_d.zaplava2013 AS za 
+FROM uzpd18_d.zdrav_zarizeni AS zz
+JOIN uzpd18_d.zaplava2013 AS za 
 ON st_intersects(zz.geom,za.geom);
 
 

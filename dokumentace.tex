@@ -364,8 +364,8 @@ ogc\_fid & geom & shape\_length & shape\_area \\ \hline
 \subsubsection*{1) Kolik adresních míst bylo zatopeno během povodní v roce 2013?}
 \begin{lstlisting}[language=html]
 SELECT COUNT(a.kod) 
-FROM uzpd_d.adresni_mista AS a
-JOIN (SELECT * FROM uzpd_d.zaplava2013) AS z
+FROM uzpd18_d.adresni_mista AS a
+JOIN (SELECT * FROM uzpd18_d.zaplava2013) AS z
 ON st_intersects(z.geom, a.geom);
 \end{lstlisting}
 1042
@@ -374,8 +374,8 @@ ON st_intersects(z.geom, a.geom);
 \subsubsection*{2) Jaká zdravotnická zařízení byla zasažena povodněmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.}
 \begin{lstlisting}[language=html]
 SELECT zz.name, zz.district 
-FROM uzpd_d.zdrav_zarizeni AS zz
-JOIN uzpd_d.zaplava2013 AS za 
+FROM uzpd18_d.zdrav_zarizeni AS zz
+JOIN uzpd18_d.zaplava2013 AS za 
 ON st_intersects(zz.geom,za.geom);
 \end{lstlisting}
 Dr.Max LÉKÁRNA, praha-8
