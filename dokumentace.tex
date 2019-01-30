@@ -16,6 +16,7 @@
 \usepackage{hyperref}
 \usepackage{amssymb}
 \usepackage{color}
+\usepackage{upquote}
 
 \def\UrlBreaks{\do\/\do-\do.\do=\do_\do?\do\&\do\%}
 
@@ -24,7 +25,7 @@
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
 \definecolor{mybackground}{rgb}{0.92,0.92,1}
 
-\lstset{ 
+\lstset{
   backgroundcolor=\color{mybackground},
   commentstyle=\color{mygreen},
   firstnumber=1,
@@ -36,7 +37,10 @@
   breakatwhitespace=false, 
   breaklines=true, 
   language=sql,
+  extendedchars=false,
+  escapeinside=<>
 }
+
 
 
 \pagestyle{empty} % vypne číslování stránek
@@ -254,7 +258,6 @@ Jelikož stažená data byla již v S-JTSK, část kódu zajišťující transfo
 ALTER TABLE metro
     DROP COLUMN objectid,
     DROP COLUMN vstupy_kod,
-    DROP COLUMN vstupy_linka,
     DROP COLUMN vstupy_vest_kod,
     DROP COLUMN vstupy_vest_nazev,
     DROP COLUMN vstupy_vazba_bus,
@@ -274,15 +277,16 @@ Přejmenování sloupečku s geometrií a názvu stanic:
 \begin{lstlisting}
 ALTER TABLE metro
     RENAME wkb_geometry TO geom,
-    RENAME vstupy_uzel_nazev TO nazev
+    RENAME vstupy_uzel_nazev TO nazev,
+    RENAME vstupy_linka TO linka
 \end{lstlisting} 
 Výsledná tabulka má tyto sloupce:
 \begin{table}[h!]
 \centering
-\begin{tabular}{|c|c|c|}
+\begin{tabular}{|c|c|c|c|}
 \hline
-\multicolumn{3}{|c|}{\textbf{metro}} \\ \hline
-ogc\_fid      & geom     & nazev     \\ \hline
+\multicolumn{4}{|c|}{\textbf{metro}} \\ \hline
+ogc\_fid      & geom     & nazev     & linka     \\ \hline
 \end{tabular}
 \end{table}
 
@@ -356,115 +360,170 @@ ogc\_fid & geom & shape\_length & shape\_area \\ \hline
 \end{table}
 \clearpage
 
+\section{SQL dotazy}
+\subsubsection*{1) Kolik adresních míst bylo zatopeno během povodní v roce 2013?}
+\begin{lstlisting}[language=html]
+SELECT COUNT(a.kod) 
+FROM uzpd_d.adresni_mista AS a
+JOIN (SELECT * FROM uzpd_d.zaplava2013) AS z
+ON st_intersects(z.geom, a.geom);
+\end{lstlisting}
+1042
+\vspace{0.8cm}
 
+\subsubsection*{2) Jaká zdravotnická zařízení byla zasažena povodněmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.}
+\begin{lstlisting}[language=html]
+SELECT zz.name, zz.district 
+FROM uzpd_d.zdrav_zarizeni AS zz
+JOIN uzpd_d.zaplava2013 AS za 
+ON st_intersects(zz.geom,za.geom);
+\end{lstlisting}
+Dr.Max LÉKÁRNA, praha-8
+\vspace{0.8cm}
 
+\subsubsection*{3) Kolik adresních míst leží ve vzdálenosti do 500 m od výlezu ze stanice metra Depo Hostivař?}
+\begin{lstlisting}[language=html]
+SELECT count(distinct a.kod) 
+FROM uzpd18_d.adresni_mista AS a
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(a.geom, m.geom, 500)
+WHERE m.nazev = 'Depo Hostiva<ř>';
+\end{lstlisting}
+48
+\vspace{0.8cm}
 
+\subsubsection*{4) Kolik košů na tříděný odpad se nachází na území Prahy 1?}
+\begin{lstlisting}[language=html]
+SELECT COUNT(o.ogc_fid) 
+FROM uzpd18_d.odpad AS o
+JOIN (SELECT * FROM uzpd18_d.obvody WHERE nazev = 'Praha 1') AS p
+ON st_intersects(p.geom, o.geom);
+\end{lstlisting}
+821
+\vspace{0.8cm}
 
+\subsubsection*{5) Jaké procento území Prahy zaujímá záplavové území z roku 2013?}
+\begin{lstlisting}[language=html]
+SELECT ROUND(
+(
+SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
+)::numeric / (
+SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
+)::numeric, 2)*100 AS procento_zaplava;
+\end{lstlisting}
+5\%
+\vspace{0.8cm}
 
+\subsubsection*{6) Jaká stanice metra na Praze 4 má nejvíce vstupů?}
+\begin{lstlisting}[language=html]
+SELECT m.nazev FROM uzpd18_d.metro AS m
+JOIN (SELECT * FROM uzpd18_d.obvody 
+WHERE nazev = 'Praha 4') AS p
+ON st_intersects(p.geom, m.geom)
+GROUP BY m.nazev
+ORDER BY COUNT(m.ogc_fid) DESC
+LIMIT 1;
+\end{lstlisting}
+Budějovická
+\vspace{0.8cm}
 
+\subsubsection*{7) Která zdravotnická zařízení leží do 10 m od stanic metra A? V které městské části se tato zařízení nacházejí?}
+\begin{lstlisting}[language=html]
+SELECT z.name, z.district 
+FROM uzpd18_d.zdrav_zarizeni AS z
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(z.geom, m.geom, 10)
+WHERE m.linka LIKE '%A%';
+\end{lstlisting}
+\begin{flushleft}
+Dr.Max LÉKÁRNA, praha-1\linebreak
+BENU Lékárna OC Atrium Flora, praha-3
+\end{flushleft}
+\vspace{0.009cm}
 
+\subsubsection*{8) Kolik dětských hřišť se nachází ve vzdálenosti do 2 kilometrů od nejbližší nemocnice?}
+\begin{lstlisting}[language=html]
+WITH 
+    n AS (
+        SELECT * FROM uzpd18_d.zdrav_zarizeni AS z 
+        WHERE type LIKE '%nemocnice%')
+SELECT COUNT(DISTINCT(h.ogc_fid)) 
+FROM uzpd18_d.detska_hriste AS h, n
+WHERE n.geom && st_expand(h.geom, 2000);
+\end{lstlisting}
+61
+\vspace{0.8cm}
 
+\subsubsection*{9) Kolik adresních míst má lékárnu a dětské hřiště do vzdálenosti 500 m?}
+\begin{lstlisting}[language=html]
+WITH
+    buff_h AS (
+        SELECT st_buffer(geom, 500) AS geom 
+        FROM uzpd18_d.detska_hriste AS h),
+    buff_z AS (
+        SELECT st_buffer(geom, 500) AS geom 
+        FROM uzpd18_d.zdrav_zarizeni AS z
+        WHERE type = 'L<é>k<á>rna') 
+SELECT COUNT(DISTINCT(kod)), a.geom FROM uzpd18_d.adresni_mista AS a
+INNER JOIN buff_h ON st_intersects(a.geom, buff_h.geom)
+INNER JOIN buff_z ON st_intersects(a.geom, buff_z.geom);
+\end{lstlisting}
+25130
+\vspace{0.8cm}
 
+\subsubsection*{10) Který pražský správní obvod má nejlepší poměr počtu košů na tříděný odpad vzhledem ke své rozloze? Uveďte název obvodu, jeho rozlohu, počet košů a poměr těchto dvou hodnot.}
+\begin{lstlisting}[language=html]
+WITH 
+    oo AS (
+        SELECT ob.nazev, count(od.ogc_fid), ob.geom FROM obvody AS ob
+        JOIN uzpd18_d.odpad AS od 
+        ON st_intersects(ob.geom, od.geom)
+        GROUP BY ob.nazev, ob.geom
+        ORDER BY COUNT(od.ogc_fid) DESC),
+    area AS (
+        SELECT obvody.nazev, st_area(obvody.geom), geom from obvody)
+SELECT oo.nazev, ROUND(area.st_area), count, ROUND(area.st_area/count) AS ratio 
+FROM oo
+JOIN area ON oo.nazev = area.nazev
+GROUP BY oo.nazev, area.st_area, count, area.st_area/count
+ORDER BY area.st_area/count DESC
+LIMIT 1;
+\end{lstlisting}
+Praha 22, 33660132, 70, 480859
+\vspace{0.8cm}
 
+\subsubsection*{11) Na území kterého pražského správního obvodu se nachází největší množství dětských hřišť a kolik to je?!!!!!!!!}
+\begin{lstlisting}[language=html]
+SELECT o.nazev, COUNT(distinct dh.ogc_fid) 
+FROM uzpd18_d.obvody AS o 
+JOIN uzpd18_d.detska_hriste AS dh 
+ON st_intersects(dh.geom, o.geom) 
+HAVING COUNT(distinct dh.ogc_fid) = (
+    SELECT COUNT(distinct dh.ogc_fid) FROM uzpd18_d.obvody AS o 
+    JOIN uzpd18_d.detska_hriste AS dh 
+    ON st_intersects(dh.geom, o.geom) 
+    GROUP BY o.nazev 
+    ORDER BY COUNT(distinct dh.ogc_fid) 
+    DESC LIMIT 1);
+\end{lstlisting}
+\begin{flushleft}
+praha-3, 14 \linebreak
+praha-4, 14
+\end{flushleft}
 
-
-
-
-\begin{comment}
-\section{Aplikace}
-V následují kapitole je představen vizuální vzhled vytvořené aplikace tak, jak ji vidí prostý uživatel.
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=14cm]{./pictures/app_default.png}
-	\caption{Výchozí vzhled aplikace po spuštění}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=14cm]{./pictures/app_load_points.png}
-	\caption{Aplikace po nahrání vstupních dat}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=15cm]{./pictures/app_delaunay.png}
-	\caption{Trojúhelníková síť}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=15cm]{./pictures/app_contours.png}
-	\caption{Vykreslení vrstevnic}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=15cm]{./pictures/app_slope.png}
-	\caption{Sklon trojúhelníků}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=15cm]{./pictures/app_aspect.png}
-	\caption{Orientace trojúhelníků}
-\end{figure}
-\clearpage
-
-
-\subsection{Plošina}
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=7cm]{./pictures/kupec_plateau_contours.png}
-	\includegraphics[width=7cm]{./pictures/kupec_plateau_slope.png}
-	\caption{Plošina vytvořená aplikací}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=7cm]{./pictures/atlas_plateau.png}
-	\caption{Plošina ze SW \textit{Atlas}}
-\end{figure}
-
-Plošina uprostřed území je rozeznatelná zejména z tvarů vrstevnic. Z trojúhelníkové sítě je patrné, že je trochu vyvýšená, ale i tak to chce trochu představivosti.
-
-\subsection{Hrana}
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=7cm]{./pictures/kupec_edge_contours.png}
-	\includegraphics[width=7cm]{./pictures/kupec_edge_slope.png}
-	\caption{Hrana silnice vytvořená aplikací}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=10cm]{./pictures/atlas_edge.png}
-	\caption{Hrana silnice ze SW \textit{Atlas}}
-\end{figure}
-
-Vygenerované vrstevnice v okolí silnice působí silně kostrbatým dojmem, avšak trojúhel\-ní\-ko\-vá síť poměrně věrně kopíruje tvar silnice. Jak již bylo zmíněno výše, velkým pro\-blé\-mem jsou štíhlé trojúhelníky v horní části modelu, které by neměly existovat.
-
-
-\subsection{Údolnice}
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=7.5cm]{./pictures/kupec_thalweg_contours.png}
-	\includegraphics[width=7.5cm]{./pictures/kupec_thalweg_aspect.png}
-	\caption{Údolnice vytvořená aplikací}
-\end{figure}
-
-\begin{figure}[h!]
-	\centering
-	\includegraphics[width=15cm]{./pictures/atlas_thalweg.png}
-	\caption{Údolnice ze SW \textit{Atlas}}
-\end{figure}
-
-Pro názornost porovnání byla tentokrát použita orientace trojúhelníků ke světovým stranám. Z jejich natočení je patrné, že ve středu dochází ke zlomu v terénu. Vrstevnice tento úkaz hezky vystihují. Ze všech částí DMT vystihla aplikace tento tvar v porovnání s DMT z \textit{Atlasu} nejvěrněji.
-\clearpage
-
-\end{comment}
-
-\section{Ukázka SQL dotazů}
+\subsubsection*{12) Jaké je id nejbližšího dětského hřiště pro adresní místo s kódem 22560840? V jaké leží vzdálenosti?}
+\begin{lstlisting}[language=html]
+SELECT dh.id, ROUND(st_distance(a.geom, dh.geom)) AS distance 
+FROM uzpd18_d.detska_hriste AS dh, uzpd18_d.adresni_mista AS a
+WHERE a.kod = '22560840' AND st_distance(a.geom, dh.geom) = (
+    SELECT st_distance(a.geom, dh. geom) 
+    FROM detska_hriste AS dh, uzpd18_d.adresni_mista AS a
+    WHERE a.kod = '22560840' 
+    ORDER BY st_distance(a.geom, dh.geom)
+    LIMIT 1);
+\end{lstlisting}
+120, 506 m
+\vspace{0.8cm}
 
 \clearpage
 
@@ -489,6 +548,15 @@ Dostupné z: \href{http://www.geoportalpraha.cz/cs/opendata?fbclid=IwAR3dvAz20d2
 
 \item  \textsl{Datové sady – Národní katalog otevřených dat (NKOD)} [online] [cit. 28. 1. 2019].\\
 Dostupné z: \href{https://data.gov.cz/datov\%C3\%A9-sady?dotaz=&fbclid=IwAR2jg2NvnsjO7BuHAgbXSJwh6VXFbsuXs0FONcle5ZfdPpO86Z_2C3YUQsU}{https://data.gov.cz/}
+
+\item  \textsl{Školení postGIS pro začátečníky} [online] [cit. 30. 1. 2019].\\
+Dostupné z: \href{http://training.gismentors.eu/postgis-zacatecnik/}{http://training.gismentors.eu/}
+
+\item  \textsl{Školení postGIS pro pokročilé} [online] [cit. 30. 1. 2019].\\
+Dostupné z: \href{http://training.gismentors.eu/postgis-pokrocily/}{http://training.gismentors.eu/}
+
+\item  \textsl{155UZPD / Semestrální projekt} [online] [cit. 30. 1. 2019].\\
+Dostupné z: \href{http://geo.fsv.cvut.cz/gwiki/155UZPD_/_Semestr%C3%A1ln%C3%AD_projekt}{http://geo.fsv.cvut.cz/}
 
 \item  \textsl{LaTeX/Source Code Listing} [online] [cit. 28. 1. 2019].\\
 Dostupné z: \href{https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings}{https://en.wikibooks.org/}

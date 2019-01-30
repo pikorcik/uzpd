@@ -79,7 +79,6 @@ ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 hos
 ALTER TABLE metro
     DROP COLUMN objectid,
     DROP COLUMN vstupy_kod,
-    DROP COLUMN vstupy_linka,
     DROP COLUMN vstupy_vest_kod,
     DROP COLUMN vstupy_vest_nazev,
     DROP COLUMN vstupy_vazba_bus,
@@ -97,7 +96,8 @@ ALTER TABLE metro
 
 ALTER TABLE metro
     RENAME wkb_geometry TO geom,
-    RENAME vstupy_uzel_nazev TO nazev
+    RENAME vstupy_uzel_nazev TO nazev,
+    RENAME vstupy_linka TO linka
 
 ---------------------------------------------------------------------
 
@@ -140,4 +140,167 @@ SQL DOTAZY
 
 ---------------------------------------------------------------------
 
-1)
+1) Kolik adresních míst bylo zatopeno bìhem povodní v roce 2013?
+
+SELECT COUNT(a.kod) 
+FROM uzpd_d.adresni_mista AS a
+JOIN (SELECT * FROM uzpd_d.zaplava2013) AS z
+ON st_intersects(z.geom, a.geom);
+
+
+
+---------------------------------------------------------------------
+
+2) Jaká zdravotnická zaøízení byla zasaena povodnìmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.
+
+SELECT zz.name, zz.district 
+FROM uzpd_d.zdrav_zarizeni AS zz
+JOIN uzpd_d.zaplava2013 AS za 
+ON st_intersects(zz.geom,za.geom);
+
+
+
+---------------------------------------------------------------------
+
+3) Kolik adresních míst leí ve vzdálenosti do 500 m od vılezu ze stanice metra Depo Hostivaø?
+
+SELECT count(distinct a.kod) 
+FROM uzpd18_d.adresni_mista AS a
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(a.geom, m.geom, 500)
+WHERE m.nazev = 'Depo Hostivaø';
+
+
+
+---------------------------------------------------------------------
+
+4) Kolik košù na tøídìnı odpad se nachází na území Prahy 1?
+
+SELECT COUNT(o.ogc_fid) 
+FROM uzpd18_d.odpad AS o
+JOIN (SELECT * FROM uzpd18_d.obvody WHERE nazev = 'Praha 1') AS p
+ON st_intersects(p.geom, o.geom);
+
+
+
+---------------------------------------------------------------------
+
+5) Jaké procento území Prahy zaujímá záplavové území z roku 2013?
+
+SELECT ROUND(
+(
+SELECT sum(st_area(geom)) FROM uzpd18_d.zaplava2013
+)::numeric / (
+SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
+)::numeric, 2)*100 AS procento_zaplava;
+
+
+
+---------------------------------------------------------------------
+
+6) Jaká stanice metra na Praze 4 má nejvíce vstupù?
+
+SELECT m.nazev FROM uzpd18_d.metro AS m
+JOIN (SELECT * FROM uzpd18_d.obvody 
+WHERE nazev = 'Praha 4') AS p
+ON st_intersects(p.geom, m.geom)
+GROUP BY m.nazev
+ORDER BY COUNT(m.ogc_fid) DESC
+LIMIT 1;
+
+
+
+---------------------------------------------------------------------
+
+7) Která zdravotnická zaøízení leí do 10 m od stanic metra A? V které mìstské èásti se tato zaøízení nacházejí?
+
+SELECT z.name, z.district 
+FROM uzpd18_d.zdrav_zarizeni AS z
+JOIN uzpd18_d.metro AS m
+ON st_dwithin(z.geom, m.geom, 10)
+WHERE m.linka LIKE '%A%';
+
+
+
+---------------------------------------------------------------------
+
+8) Kolik dìtskıch høiš se nachází ve vzdálenosti do 2 kilometrù od nejbliší nemocnice?
+
+WITH 
+    n AS (
+        SELECT * FROM uzpd18_d.zdrav_zarizeni AS z WHERE type LIKE '%nemocnice%')
+SELECT COUNT(DISTINCT(h.ogc_fid)) 
+FROM uzpd18_d.detska_hriste AS h, n
+WHERE n.geom && st_expand(h.geom, 2000);
+
+
+
+---------------------------------------------------------------------
+
+9) Kolik adresních míst má lékárnu a dìtské høištì do vzdálenosti 500 m?
+
+WITH
+    buff_h AS (
+        SELECT st_buffer(geom, 500) AS geom 
+        FROM uzpd18_d.detska_hriste AS h),
+    buff_z AS (
+        SELECT st_buffer(geom, 500) AS geom 
+        FROM uzpd18_d.zdrav_zarizeni AS z
+        WHERE type = 'Lékárna') 
+SELECT COUNT(DISTINCT(kod)), a.geom FROM uzpd18_d.adresni_mista AS a
+INNER JOIN buff_h ON st_intersects(a.geom, buff_h.geom)
+INNER JOIN buff_z ON st_intersects(a.geom, buff_z.geom);
+
+
+---------------------------------------------------------------------
+
+10) Kterı praskı správní obvod má nejlepší pomìr poètu košù na tøídìnı odpad vzhledem ke své rozloze? Uveïte název obvodu, jeho rozlohu, poèet košù a pomìr tìchto dvou hodnot.
+
+WITH 
+    oo AS (
+        SELECT ob.nazev, count(od.ogc_fid), ob.geom FROM obvody AS ob
+        JOIN uzpd18_d.odpad AS od 
+        ON st_intersects(ob.geom, od.geom)
+        GROUP BY ob.nazev, ob.geom
+        ORDER BY COUNT(od.ogc_fid) DESC),
+    area AS (
+        SELECT obvody.nazev, st_area(obvody.geom), geom from obvody)
+SELECT oo.nazev, ROUND(area.st_area), count, ROUND(area.st_area/count) AS ratio 
+FROM oo
+JOIN area ON oo.nazev = area.nazev
+GROUP BY oo.nazev, area.st_area, count, area.st_area/count
+ORDER BY area.st_area/count DESC
+LIMIT 1;
+
+
+
+---------------------------------------------------------------------
+
+11) Na území kterého praského správního obvodu se nachází nejvìtší mnoství dìtskıch høiš a kolik to je?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------
+
+12) Jaké je id nejblišího dìtského høištì pro adresní místo s kódem 22560840? V jaké leí vzdálenosti?
+
+SELECT dh.id, ROUND(st_distance(a.geom, dh.geom)) AS distance 
+FROM uzpd18_d.detska_hriste AS dh, uzpd18_d.adresni_mista AS a
+WHERE a.kod = '22560840' AND st_distance(a.geom, dh.geom) = (
+    SELECT st_distance(a.geom, dh. geom) 
+    FROM detska_hriste AS dh, uzpd18_d.adresni_mista AS a
+    WHERE a.kod = '22560840' 
+    ORDER BY st_distance(a.geom, dh.geom)
+    LIMIT 1);
