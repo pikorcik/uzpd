@@ -464,7 +464,7 @@ WITH
         SELECT st_buffer(geom, 500) AS geom 
         FROM uzpd18_d.zdrav_zarizeni AS z
         WHERE type = 'L<é>k<á>rna') 
-SELECT COUNT(DISTINCT(kod)), a.geom FROM uzpd18_d.adresni_mista AS a
+SELECT COUNT(DISTINCT(kod)) FROM uzpd18_d.adresni_mista AS a
 INNER JOIN buff_h ON st_intersects(a.geom, buff_h.geom)
 INNER JOIN buff_z ON st_intersects(a.geom, buff_z.geom);
 \end{lstlisting}
