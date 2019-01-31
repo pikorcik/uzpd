@@ -1,15 +1,15 @@
-SEMESTRÁLNÍ PROJEKT UZPD18_d
+-- SEMESTRÁLNÍ PROJEKT UZPD18_d
 ---------------------------------------------------------------------
-ZIMNÍ SEMESTR 2018/2019
+-- ZIMNÍ SEMESTR 2018/2019
 ---------------------------------------------------------------------
-TEREZA KULOVANÁ, MARKÉTA PECENOVÁ
+-- TEREZA KULOVANÁ, MARKÉTA PECENOVÁ
 ---------------------------------------------------------------------
----------------------------------------------------------------------
-
-VRSTVY
 ---------------------------------------------------------------------
 
-1) adresni_mista
+-- VRSTVY
+---------------------------------------------------------------------
+
+-- 1) adresni_mista
 
 CREATE TABLE adresni_mista AS
 	SELECT kod, cislodomovni, cisloorientacni, geom
@@ -25,7 +25,7 @@ DELETE FROM adresni_mista WHERE geom IS NULL
 
 ---------------------------------------------------------------------
 
-2) obvody
+-- 2) obvody
 
 CREATE TABLE obvody AS
     SELECT ogc_fid, nazev, geom
@@ -37,9 +37,9 @@ SELECT nazev FROM obvody WHERE NOT st_isvalid(geom)
 
 ---------------------------------------------------------------------
 
-3) detska_hriste
+-- 3) detska_hriste
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/detska_hriste.json" -nln uzpd18_d.detska_hriste
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "detska_hriste.json" -nln uzpd18_d.detska_hriste
 
 ALTER TABLE detska_hriste
     DROP COLUMN url,
@@ -55,9 +55,9 @@ ALTER TABLE detska_hriste
 
 ---------------------------------------------------------------------
 
-4) zdrav_zarizeni
+-- 4) zdrav_zarizeni
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zdrav_zarizeni.json" -nln uzpd18_d.zdrav_zarizeni
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -t_srs 'EPSG:5514' "zdrav_zarizeni.json" -nln uzpd18_d.zdrav_zarizeni
 
 ALTER TABLE zdrav_zarizeni
     DROP COLUMN id,
@@ -72,9 +72,9 @@ ALTER TABLE zdrav_zarizeni
 
 ---------------------------------------------------------------------
 
-5) metro
+-- 5) metro
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/metro.json" -nln uzpd18_d.metro
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "metro.json" -nln uzpd18_d.metro
 
 ALTER TABLE metro
     DROP COLUMN objectid,
@@ -101,9 +101,9 @@ ALTER TABLE metro
 
 ---------------------------------------------------------------------
 
-6) odpad
+-- 6) odpad
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/odpad.json" -nln uzpd18_d.odpad
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "odpad.json" -nln uzpd18_d.odpad
 
 ALTER TABLE odpad
     DROP COLUMN objectid,
@@ -117,9 +117,9 @@ ALTER TABLE odpad
 
 ---------------------------------------------------------------------
 
-7) zaplava2013
+-- 7) zaplava2013
 
-ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "/mnt/c/Users/Terka/Documents/CVUT5-1/UZPD/projekt/zaplava2013.json" -nln uzpd18_d.zaplava2013
+ogr2ogr -f "PostgreSQL" PG:"dbname=pgis_uzpd user=uzpd18_d password=d_uzpd18 host=geo102.fsv.cvut.cz" -a_srs 'EPSG:5514' "zaplava2013.json" -nln uzpd18_d.zaplava2013
 
 ALTER TABLE zaplava2013
     DROP COLUMN objectid,
@@ -136,11 +136,12 @@ UPDATE uzpd18_d.zaplava2013 SET geom = st_buffer(geom, 0.0) WHERE NOT st_isvalid
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
-SQL DOTAZY
+-- SQL DOTAZY
 
 ---------------------------------------------------------------------
 
-1) Kolik adresních míst bylo zatopeno bìhem povodní v roce 2013?
+-- 1) Kolik adresních míst bylo zatopeno bìhem povodní v roce 2013?
+-- 1042
 
 SELECT COUNT(a.kod) 
 FROM uzpd18_d.adresni_mista AS a
@@ -151,7 +152,8 @@ ON st_intersects(z.geom, a.geom);
 
 ---------------------------------------------------------------------
 
-2) Jaká zdravotnická zaøízení byla zasaena povodnìmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.
+-- 2) Jaká zdravotnická zaøízení byla zasaena povodnìmi v roce 2013? Vypište jejich název a správní obvod, ve kterém se nacházejí.
+-- Dr.Max LÉKÁRNA, praha-8
 
 SELECT zz.name, zz.district 
 FROM uzpd18_d.zdrav_zarizeni AS zz
@@ -161,7 +163,8 @@ ON st_intersects(zz.geom,za.geom);
 
 ---------------------------------------------------------------------
 
-3) Jaké procento území Prahy zaujímá záplavové území z roku 2013?
+-- 3) Jaké procento území Prahy zaujímá záplavové území z roku 2013?
+-- 5%
 
 SELECT ROUND(
 (
@@ -174,7 +177,8 @@ SELECT sum(st_area(geom)) FROM uzpd18_d.obvody
 
 ---------------------------------------------------------------------
 
-4) Kolik košù na tøídìnı odpad se nachází na území Prahy 1?
+-- 4) Kolik košù na tøídìnı odpad se nachází na území Prahy 1?
+-- 821
 
 SELECT COUNT(o.ogc_fid) 
 FROM uzpd18_d.odpad AS o
@@ -185,7 +189,8 @@ ON st_intersects(p.geom, o.geom);
 
 ---------------------------------------------------------------------
 
-5) Kolik adresních míst leí ve vzdálenosti do 500 m od vılezu ze stanice metra Depo Hostivaø?
+-- 5) Kolik adresních míst leí ve vzdálenosti do 500 m od vılezu ze stanice metra Depo Hostivaø?
+-- 48
 
 SELECT count(distinct a.kod) 
 FROM uzpd18_d.adresni_mista AS a
@@ -197,7 +202,8 @@ WHERE m.nazev = 'Depo Hostivaø';
 
 ---------------------------------------------------------------------
 
-6) Jaká stanice metra na Praze 4 má nejvíce vstupù?
+-- 6) Jaká stanice metra na Praze 4 má nejvíce vstupù?
+-- Budìjovická
 
 SELECT m.nazev FROM uzpd18_d.metro AS m
 JOIN (SELECT * FROM uzpd18_d.obvody 
@@ -211,7 +217,9 @@ LIMIT 1;
 
 ---------------------------------------------------------------------
 
-7) Která zdravotnická zaøízení leí do 10 m od stanic metra A? V které mìstské èásti se tato zaøízení nacházejí?
+-- 7) Která zdravotnická zaøízení leí do 10 m od stanic metra A? V které mìstské èásti se tato zaøízení nacházejí?
+-- Dr.Max LÉKÁRNA, praha-1
+-- BENU Lékárna OC Atrium Flora, praha-3
 
 SELECT z.name, z.district 
 FROM uzpd18_d.zdrav_zarizeni AS z
@@ -223,7 +231,8 @@ WHERE m.linka LIKE '%A%';
 
 ---------------------------------------------------------------------
 
-8) Kolik dìtskıch høiš se nachází ve vzdálenosti do 2 kilometrù od nejbliší nemocnice?
+-- 8) Kolik dìtskıch høiš se nachází ve vzdálenosti do 2 kilometrù od nejbliší nemocnice?
+-- 61
 
 WITH 
     n AS (
@@ -236,7 +245,8 @@ WHERE n.geom && st_expand(h.geom, 2000);
 
 ---------------------------------------------------------------------
 
-9) Kolik adresních míst má lékárnu a dìtské høištì do vzdálenosti 500 m?
+-- 9) Kolik adresních míst má lékárnu a dìtské høištì do vzdálenosti 500 m?
+-- 25130
 
 WITH
     buff_h AS (
@@ -253,7 +263,8 @@ INNER JOIN buff_z ON st_intersects(a.geom, buff_z.geom);
 
 ---------------------------------------------------------------------
 
-10) Kterı praskı správní obvod má nejlepší pomìr poètu košù na tøídìnı odpad vzhledem ke své rozloze? Uveïte název obvodu, jeho rozlohu, poèet košù a pomìr tìchto dvou hodnot.
+-- 10) Kterı praskı správní obvod má nejlepší pomìr poètu košù na tøídìnı odpad vzhledem ke své rozloze? Uveïte název obvodu, jeho rozlohu, poèet košù a pomìr tìchto dvou hodnot.
+-- Praha 22,	33660132 m2, 70	košù, 480859
 
 WITH 
     oo AS (
@@ -275,7 +286,9 @@ LIMIT 1;
 
 ---------------------------------------------------------------------
 
-11) Na území kterého praského správního obvodu se nachází nejvìtší mnoství dìtskıch høiš a kolik to je?
+-- 11) Na území kterého praského správního obvodu se nachází nejvìtší mnoství dìtskıch høiš a kolik to je?
+-- Praha 3, 14
+-- Praha 4, 14
 
 SELECT o.nazev, COUNT(distinct dh.ogc_fid) 
 FROM uzpd18_d.obvody AS o 
@@ -293,7 +306,8 @@ HAVING COUNT(distinct dh.ogc_fid) = (
 
 ---------------------------------------------------------------------
 
-12) Jaké je id nejblišího dìtského høištì pro adresní místo s kódem 22560840? V jaké leí vzdálenosti?
+-- 12) Jaké je id nejblišího dìtského høištì pro adresní místo s kódem 22560840? V jaké leí vzdálenosti?
+-- 102, 506 m
 
 SELECT dh.id, ROUND(st_distance(a.geom, dh.geom)) AS distance 
 FROM uzpd18_d.detska_hriste AS dh, uzpd18_d.adresni_mista AS a
