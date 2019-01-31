@@ -36,7 +36,7 @@
   keepspaces=true, 
   breakatwhitespace=false, 
   breaklines=true, 
-  language=sql,
+  language=html,
   extendedchars=false,
   escapeinside=<>
 }
@@ -123,7 +123,7 @@ Vrstvy:
 \end{itemize}
 
 \subsubsection{Otevřená data}
-Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají uvedené jako  pos\-ky\-tovatele \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Geometrie všech vrstev je reprezentována bodem. Data byla stažena ve formátu geoJSON a až na poslední uvedenou vrstvu byla v souřadnicovém systému WGS84 (S-JTSK nebyl k dispozici). Pouze \textsl{Vstupy do metra} byly staženy přímo v S-JTSK.\\
+Veškeré datové vrstvy, které byly staženy z portálu \textit{Otevřená data}, mají uvedeného jako  pos\-ky\-tovatele \textsl{HLAVNÍ MĚSTO PRAHA} a jsou vztažena pouze na území Prahy. Geometrie všech vrstev je reprezentována bodem. Data byla stažena ve formátu geoJSON a až na poslední uvedenou vrstvu byla v souřadnicovém systému WGS84 (S-JTSK nebyl k dispozici). Pouze \textsl{Vstupy do metra} byly staženy přímo v S-JTSK.\\
 
 Vrstvy:  
 \begin{itemize}
@@ -151,14 +151,12 @@ CREATE TABLE adresni_mista AS
     SELECT kod, cislodomovni, cisloorientacni, geom
     FROM ruian_praha.adresnimista
 \end{lstlisting}
-
-Následně byly nad sloupečkem \textsl{kód} nastaven primární klíč a nad sloupečkem \textsl{geom} prostorový index.
+Následně byl nad sloupečkem \textsl{kód} nastaven primární klíč a nad sloupečkem \textsl{geom} prostorový index.
 \begin{lstlisting}
 ALTER TABLE adresni_mista ADD PRIMARY KEY(kod)
 
 CREATE index adresy_index ON adresni_mista(geom)
 \end{lstlisting}
-
 Na závěr byla provedena kontrola validity geometrie, která vyšla negativní.
 \begin{lstlisting}
 SELECT kod FROM adresni_mista WHERE NOT st_isvalid(geom)
@@ -175,19 +173,17 @@ CREATE TABLE obvody AS
     SELECT ogc_fid, nazev, geom
     FROM ruian_praha.spravniobvody
 \end{lstlisting}
-
-Následně byly nad sloupečkem \textsl{ogc\_fid} nastaven primární klíč.
+Následně byl nad sloupečkem \textsl{ogc\_fid} nastaven primární klíč.
 \begin{lstlisting}
 ALTER TABLE obvody ADD PRIMARY KEY(ogc_fid)
 \end{lstlisting}
-
 Na závěr byla provedena kontrola validity geometrie, která vyšla negativní.
 \begin{lstlisting}
 SELECT nazev FROM obvody WHERE NOT st_isvalid(geom)
 \end{lstlisting}
 
 \subsection{Otevřená data}
-Všechna data z tohoto zdroje byla stažena ve formátu geoJSON a byla převážně v systému WGS84 (výjimka: vrstva \textit{metro} bylo od počátku v S-JTSK). Postup při zpracování těchto dat byl obdobný. Data byla importována do příslušného schématu pomocí nástroje \textit{ogr2ogr} a přímo v databázi byly v tabulkách promazány nepotřebné sloupečky a přejmenován sloupeček s geometrií, který po nahrání dávkou získal uživatelsky nepřívětivý název \textit{wkb\_ge\-o\-metry}.\\
+Všechna data z tohoto zdroje byla stažena ve formátu geoJSON a byla převážně v systému WGS84 (výjimka: vrstva \textit{metro} byla od počátku v S-JTSK). Postup při zpracování těchto dat byl obdobný. Data byla importována do příslušného schématu pomocí nástroje \textit{ogr2ogr} a přímo v databázi byly v tabulkách promazány nepotřebné sloupečky a přejmenován sloupeček s geometrií, který po nahrání dávkou získal uživatelsky nepřívětivý název \textit{wkb\_ge\-o\-metry}.\\
 
 Během importu do databáze bylo u některých dat nutné provést transformaci ze systému WGS84 (EPSG: 4326) do S-JTSK (EPSG: 5514). Transformaci zajišťovala část kódu \linebreak \textsl{-t\_srs 'EPSG:5514'}. Nebyla-li transformace nutná, nahradila se tato část kódu za \textsl{-a\_srs 'EPSG:5514'}. Při importu byl automaticky vytvořen sloupeček s primárním klíčem \textsl{ogc\_fid} a byly vytvořeny prostorové indexy. Níže je uveden obecný kód pro nahrání souboru do příslušného schématu databáze (s transformací do S-JTSK):
 
@@ -530,9 +526,9 @@ WHERE a.kod = '22560840' AND st_distance(a.geom, dh.geom) = (
 \section{Závěr}
 Na základě volně dostupných zdrojů dat byly navrženy a zpracovány tematické vrstvy. Nad těmito vrstvami byly následně aplikovány prostorové a atributové dotazy. Semestrální projekt nám přinesl další zkušenosti při zpracování prostorových dat a jejich uchování v databázích.\\
 
-Během zpracování se vyskytlo několik problémů. Prvním problémem se ukázalo býti zvolené téma. Samo o sobě je velmi široké a při jeho volbě nás nenapadlo, že by v tom mohla být potíž. Pro naši analýzu bylo k dispozici ke stažení velké množství dat, z nichž jsme se rozhodly použít jen několik zdrojů a ty zpracovat podrobněji. Použití velkého množství dat (a že se nám jich líbilo hodně) by zapříčinilo, že výsledek naší práce by nebyl tak kvalitně zpracován, jak bychom si přály. Nakonec se ukázalo, že použité datové vrstvy neobsahovaly takové množství užitečných informací, a bylo nutné smazat většinu sloupečků. Výsledek projektu odpovídá zvolenému tématu jen částečně, jelikož se nám povedla pouze analýza bydlení v Praze na základě zvolených tématických vrstev, nikoli komplexní jak jsme původně zamýšlely.\\
+Během zpracování se vyskytlo několik problémů. Prvním problémem se ukázalo býti zvolené téma. Samo o sobě je velmi široké a při jeho volbě nás nenapadlo, že by v tom mohla být potíž. Pro naši analýzu bylo k dispozici ke stažení velké množství dat, z nichž jsme se rozhodly použít jen několik zdrojů a ty zpracovat podrobněji. Použití velkého množství dat (a že se nám jich líbilo hodně) by zapříčinilo, že výsledek naší práce by nebyl tak kvalitně zpracován, jak bychom si přály. Nakonec se ukázalo, že použité datové vrstvy neobsahovaly takové množství užitečných informací, jak jsme předpokládaly, a bylo nutné smazat většinu sloupečků v tabulkách. Výsledek projektu odpovídá zvolenému tématu jen částečně, jelikož se nám povedla pouze analýza bydlení v Praze na základě zvolených tématických vrstev, nikoli komplexní jak jsme původně zamýšlely.\\
 
-Jako zádrhel při zpracování se ukázal import dat ve formátu geoJSON. Nikde jsme neobjevily přesný návod, jak importovat data tohoto typu do postGIS databáze přes příkazovou řádku, je-li součástí dávky i přihlašovací jméno a heslo do databáze. Správný zápis příkazu se nakonec povedlo nalézt. 
+Jako zádrhel při zpracování se ukázal import dat ve formátu geoJSON. Nikde jsme neobjevily přesný návod, jak importovat data tohoto typu do postGIS databáze přes příkazovou řádku, je-li součástí dávky i přihlašovací jméno a heslo do databáze. Správný zápis příkazu se nakonec podařilo nalézt. 
 \clearpage
 
 \section{Přílohy} 
