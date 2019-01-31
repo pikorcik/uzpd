@@ -52,6 +52,8 @@ ALTER TABLE detska_hriste
 
 ALTER TABLE detska_hriste
     RENAME wkb_geometry TO geom
+	
+SELECT id FROM detska_hriste WHERE NOT st_isvalid(geom)
 
 ---------------------------------------------------------------------
 
@@ -69,6 +71,8 @@ ALTER TABLE zdrav_zarizeni
 
 ALTER TABLE zdrav_zarizeni
     RENAME wkb_geometry TO geom
+	
+SELECT ogc_fid FROM zdrav_zarizeni WHERE NOT st_isvalid(geom)
 
 ---------------------------------------------------------------------
 
@@ -99,6 +103,8 @@ ALTER TABLE metro
     RENAME vstupy_uzel_nazev TO nazev,
     RENAME vstupy_linka TO linka
 
+SELECT ogc_fid FROM metro WHERE NOT st_isvalid(geom)
+
 ---------------------------------------------------------------------
 
 -- 6) odpad
@@ -114,6 +120,8 @@ ALTER TABLE odpad
 
 ALTER TABLE odpad
     RENAME wkb_geometry TO geom
+	
+SELECT ogc_fid FROM odpad WHERE NOT st_isvalid(geom)
 
 ---------------------------------------------------------------------
 
